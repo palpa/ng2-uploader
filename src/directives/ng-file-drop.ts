@@ -6,16 +6,18 @@ import {
   Output,
   HostListener
 } from '@angular/core';
-import {Ng2Uploader} from '../services/ng2-uploader';
+import { Ng2Uploader, UploadRejected } from '../services/ng2-uploader';
 
 @Directive({
   selector: '[ngFileDrop]'
 })
 export class NgFileDropDirective {
-  
+
   @Input() events: EventEmitter<any>;
   @Output() onUpload: EventEmitter<any> = new EventEmitter();
   @Output() onPreviewData: EventEmitter<any> = new EventEmitter();
+  @Output() onFileOver:EventEmitter<any> = new EventEmitter();
+  @Output() onUploadRejected: EventEmitter<UploadRejected> = new EventEmitter<UploadRejected>();
 
    _options:any;
 
@@ -63,6 +65,10 @@ export class NgFileDropDirective {
   }
 
   initEvents(): void {
+    if (typeof this.el.nativeElement.addEventListener === 'undefined') {
+      return;
+    }
+
     this.el.nativeElement.addEventListener('drop', (e: any) => {
       e.stopPropagation();
       e.preventDefault();
@@ -95,11 +101,17 @@ export class NgFileDropDirective {
         return true;
       }
 
+      this.onUploadRejected.emit({file: f, reason: UploadRejected.EXTENSION_NOT_ALLOWED});
+
       return false;
     });
   }
 
   @HostListener('change') onChange(): void {
+    if (!this.el.nativeElement.files || !this.el.nativeElement.files.length) {
+      return;
+    }
+
     this.files = Array.from(this.el.nativeElement.files);
 
     if (this.options.filterExtensions && this.options.allowedExtensions) {
@@ -110,4 +122,15 @@ export class NgFileDropDirective {
       this.uploader.addFilesToQueue(this.files);
     }
   }
+
+  @HostListener('dragover', ['$event'])
+  public onDragOver(event:any):void {
+    this.onFileOver.emit(true);
+  }
+
+  @HostListener('dragleave', ['$event'])
+  public onDragLeave(event:any):any {
+    this.onFileOver.emit(false);
+  }
+
 }

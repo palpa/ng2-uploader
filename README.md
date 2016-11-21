@@ -20,6 +20,8 @@ npm install ng2-uploader --save
 | calculateSpeed | true/false |
 | data          | { userId: 12, isAdmin: true } |
 | customHeaders  | { 'custom-header': 'value' } |
+| fieldName      | 'user[avatar]'
+| fieldReset     | true/false
 | authToken      | 012313asdadklj123123 |
 | authTokenPrefix | 'Bearer' (default) |
 
@@ -41,12 +43,12 @@ npm install ng2-uploader --save
 
 ````ts
 // app.module.ts
-import { UPLOAD_DIRECTIVES } from 'ng2-uploader';
+import { Ng2UploaderModule } from 'ng2-uploader';
 ...
 @NgModule({
   ...
-  declarations: [
-    UPLOAD_DIRECTIVES
+  imports: [
+    Ng2UploaderModule
   ],
   ...
 })
@@ -59,6 +61,7 @@ import { Component } from '@angular/core';
 })
 export class DemoApp {
   uploadFile: any;
+  hasBaseDropZoneOver: boolean = false;
   options: Object = {
     url: 'http://localhost:10050/upload'
   };
@@ -69,15 +72,30 @@ export class DemoApp {
       this.uploadFile = data;
     }
   }
+
+  fileOverBase(e:any):void {
+    this.hasBaseDropZoneOver = e;
+  }
 }
 ````
 
 ````html
 <!-- app.component.html -->
-<input type="file" 
+<input type="file"
        ngFileSelect
        [options]="options"
        (onUpload)="handleUpload($event)">
+
+<!-- drag & drop file example-->
+<style>
+  .file-over { border: dotted 3px red; } /* Default class applied to drop zones on over */
+</style>
+<div ngFileDrop
+     [options]="options"
+     (onUpload)="handleUpload($event)"
+     [ngClass]="{'file-over': hasBaseDropZoneOver}"
+     (onFileOver)="fileOverBase($event)">
+</div>
 
 <div>
 Response: {{ uploadFile | json }}
@@ -164,9 +182,9 @@ const upload = {
       files.file.forEach((file) => {
         let fileData = fs.readFileSync(file.path);
         const originalName = file.originalFilename;
-        const generatedName = Md5(new Date().toString() + 
+        const generatedName = Md5(new Date().toString() +
           originalName) + path.extname(originalName);
-        const filePath = path.resolve(__dirname, 'uploads', 
+        const filePath = path.resolve(__dirname, 'uploads',
           generatedName);
 
         fs.writeFileSync(filePath, fileData);
@@ -212,14 +230,14 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-const upload = multer({ 
+const upload = multer({
   dest: 'uploads/',
   storage: multer.diskStorage({
     filename: (req, file, cb) => {
       let ext = path.extname(file.originalname);
       cb(null, `${Math.random().toString(36).substring(7)}${ext}`);
     }
-  }) 
+  })
 });
 
 app.post('/upload', upload.any(), (req, res) => {
@@ -240,7 +258,7 @@ app.listen(10050, () => {
 ### Backend example using plain PHP
 
 ````php
-<?php 
+<?php
 
 header("Access-Control-Allow-Origin: *");
 
@@ -256,7 +274,7 @@ if (isset($_FILES['file'])) {
   $ext = '.'.pathinfo($originalName, PATHINFO_EXTENSION);
   $generatedName = md5($_FILES['file']['tmp_name']).$ext;
   $filePath = $path.$generatedName;
-  
+
   if (!is_writable($path)) {
     echo json_encode(array(
       'status' => false,

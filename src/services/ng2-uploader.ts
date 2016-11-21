@@ -78,6 +78,7 @@ export class Ng2Uploader {
   authTokenPrefix: string = 'Bearer';
   authToken: string = undefined;
   fieldName: string = 'file';
+  fieldReset: boolean = true;
   previewUrl: boolean = false;
   calculateSpeed: boolean = false;
   _queue: any[] = [];
@@ -99,6 +100,7 @@ export class Ng2Uploader {
     this.authTokenPrefix = options.authTokenPrefix != null ? options.authTokenPrefix : this.authTokenPrefix;
     this.authToken = options.authToken != null ? options.authToken : this.authToken;
     this.fieldName = options.fieldName != null ? options.fieldName : this.fieldName;
+    this.fieldReset = options.fieldReset != null ? options.fieldReset : this.fieldReset;
     this.previewUrl = options.previewUrl != null ? options.previewUrl : this.previewUrl;
     this.calculateSpeed = options.calculateSpeed != null ? options.calculateSpeed : this.calculateSpeed;
     if (!this.multiple) {
@@ -205,6 +207,7 @@ export class Ng2Uploader {
   }
 
   addFilesToQueue(files: File[]): void {
+    this.clearQueue();
     files.forEach((file: File, i: number) => {
       if (this.isFile(file) && !this.inQueue(file)) {
         this._queue.push(file);
@@ -252,6 +255,14 @@ export class Ng2Uploader {
   generateRandomIndex(): string {
     return Math.random().toString(36).substring(7);
   }
+}
+
+export class UploadRejected {
+  public static get EXTENSION_NOT_ALLOWED():string { return 'ExtensionNotAllowed'; }
+  public static get MAX_SIZE_EXCEEDED():string { return 'MaxSizeExceeded'; }
+
+  file: any;
+  reason: string; 
 }
 
 function humanizeBytes(bytes: number): string {

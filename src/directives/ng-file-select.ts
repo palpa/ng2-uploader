@@ -6,18 +6,19 @@ import {
   Output,
   HostListener
 } from '@angular/core';
-import { Ng2Uploader } from '../services/ng2-uploader';
+import { Ng2Uploader, UploadRejected } from '../services/ng2-uploader';
 
 @Directive({
   selector: '[ngFileSelect]'
 })
 export class NgFileSelectDirective {
-  
+
   @Input() events: EventEmitter<any>;
   @Output() onUpload: EventEmitter<any> = new EventEmitter();
   @Output() onPreviewData: EventEmitter<any> = new EventEmitter();
-  
-  _options:any;
+  @Output() onUploadRejected: EventEmitter<UploadRejected> = new EventEmitter<UploadRejected>();
+
+  _options: any;
 
   get options(): any {
     return this._options;
@@ -42,6 +43,9 @@ export class NgFileSelectDirective {
       this.onUpload.emit(data);
       if (data.done) {
         this.files = this.files.filter(f => f.name !== data.originalName);
+        if (this.uploader.fieldReset) {
+          this.el.nativeElement.value = '';
+        }
       }
     });
 
@@ -50,7 +54,7 @@ export class NgFileSelectDirective {
     });
 
     setTimeout(() => {
-      if (this.events instanceof EventEmitter) {
+      if (this.events) {
         this.events.subscribe((data: string) => {
           if (data === 'startUpload') {
             this.uploader.uploadFilesInQueue();
@@ -71,11 +75,17 @@ export class NgFileSelectDirective {
         return true;
       }
 
+      this.onUploadRejected.emit({file: f, reason: UploadRejected.EXTENSION_NOT_ALLOWED});
+
       return false;
     });
   }
 
   @HostListener('change') onChange(): void {
+    if (!this.el.nativeElement.files) {
+      return;
+    }
+
     this.files = Array.from(this.el.nativeElement.files);
     if (this.options.filterExtensions && this.options.allowedExtensions) {
       this.filterFilesByExtension();
